@@ -2,7 +2,7 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Cwd;
 use File::Basename;
@@ -32,11 +32,12 @@ sub compile {
         "sub {",
         "CGI::initialize_globals() if defined &CGI::initialize_globals;",
         "local \$0 = '$path';",
-        "chdir '$dir';",
+        "my \$_cwd = Cwd::cwd;chdir '$dir';",
         "package $package;",
         "\n#line 1 $path\n",
         $code,
-        "\n};";
+        "\n",
+        "chdir \$_cwd;};";
 
     my $sub = do {
         no strict;
