@@ -2,11 +2,12 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Cwd;
 use File::Basename;
 use File::Spec::Functions;
+use File::pushd;
 
 sub new {
     my $class = shift;
@@ -32,12 +33,11 @@ sub compile {
         "sub {",
         "CGI::initialize_globals() if defined &CGI::initialize_globals;",
         "local \$0 = '$path';",
-        "my \$_cwd = Cwd::cwd;chdir '$dir';",
+        "File::pushd::pushd '$dir';",
         "package $package;",
         "\n#line 1 $path\n",
         $code,
-        "\n",
-        "chdir \$_cwd;};";
+        "\n};";
 
     my $sub = do {
         no strict;
