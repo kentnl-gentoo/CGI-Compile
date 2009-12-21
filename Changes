@@ -1,5 +1,10 @@
 Revision history for Perl extension CGI::Compile
 
+0.06  Mon Dec 21 09:50:57 PST 2009
+        - support __DATA__ sections (rkitover)
+        - support CGIs that call exit() (rkitover)
+        - preserve %SIG on compile and run (rkitover)
+
 0.05  Fri Dec  4 21:45:36 GMT 2009
         - Really fix the chdir bug by saving the return value of pushd
 
