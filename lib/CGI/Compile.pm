@@ -2,7 +2,7 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Cwd;
 use File::Basename;
@@ -40,6 +40,7 @@ sub compile {
 
     $package ||= $self->_build_package($path);
  
+    $code =~ s/^__END__\n.*//ms;
     $code =~ s/^__DATA__\n(.*)//ms;
     my $data = $1;
 
