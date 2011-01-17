@@ -2,7 +2,7 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Cwd;
 use File::Basename;
@@ -57,6 +57,8 @@ sub compile {
     my $dir  = File::Basename::dirname($path);
 
     $package ||= $self->_build_package($path);
+
+    my $warnings = $code =~ /^#!.*\s-w\b/ ? 1 : 0;
  
     $code =~ s/^__END__\n.*//ms;
     $code =~ s/^__DATA__\n(.*)//ms;
@@ -73,6 +75,7 @@ sub compile {
         'local *DATA;',
         q{open DATA, '<', \$data;},
         'local *SIG = +{ %SIG };',
+        ('local $^W = '.$warnings.';'),
         'my $rv = eval {',
         "\n#line 1 $path\n",
         $code,
@@ -172,6 +175,20 @@ into a persistent PSGI application like:
   my $app = CGI::Emulate::PSGI->handler($sub);
 
   # $app is a PSGI application
+
+=head1 CAVEATS
+
+If your CGI script has a subroutine that references the lexical scope
+variable outside the subroutine, you'll see warnings such as:
+
+  Variable "$q" is not available at ...
+  Variable "$counter" will not stay shared at ...
+
+This is due to the way this module compiles the whole script into a
+big C<sub>. To solve this, you have to update your code to pass around
+the lexical variables, or replace C<my> with C<our>. See also
+L<http://perl.apache.org/docs/1.0/guide/porting.html#The_First_Mystery>
+for more details.
 
 =head1 AUTHOR
 
