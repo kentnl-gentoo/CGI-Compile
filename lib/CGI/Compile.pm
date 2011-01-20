@@ -2,7 +2,7 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Cwd;
 use File::Basename;
@@ -75,6 +75,7 @@ sub compile {
         'local *DATA;',
         q{open DATA, '<', \$data;},
         'local *SIG = +{ %SIG };',
+        'no warnings;',
         ('local $^W = '.$warnings.';'),
         'my $rv = eval {',
         "\n#line 1 $path\n",
