@@ -2,7 +2,7 @@ package CGI::Compile;
 
 use strict;
 use 5.008_001;
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 use Cwd;
 use File::Basename;
@@ -25,7 +25,7 @@ BEGIN {
 
     my $proto = $orig ? prototype $orig : prototype 'CORE::exit';
 
-    $proto = "($proto)" if $proto;
+    $proto = $proto ? "($proto)" : '';
 
     $orig ||= sub {
         my $exit_code = shift;
