@@ -12,7 +12,7 @@ sub _eval {
     eval $_[0];
 }
 
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 use Cwd;
 use File::Basename;
@@ -136,6 +136,8 @@ sub compile {
 
         sub {
             my @args = @_;
+            # this is necessary for MSWin32
+            local $SIG{__WARN__} = sub { warn(@_) unless $_[0] =~ /^No such signal/ };
             $code->($self, $data, $path, $dir, \@args)
         };
     };
