@@ -3,21 +3,15 @@ package CGI::Compile;
 use strict;
 use 5.008_001;
 
-# this helper function is placed at the top of the file to
-# hide variables in this file from the generated sub.
-sub _eval {
-    no strict;
-    no warnings;
-
-    eval $_[0];
-}
-
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 use Cwd;
 use File::Basename;
 use File::Spec::Functions;
 use File::pushd;
+use File::Temp;
+use File::Spec;
+use File::Path;
 
 our $RETURN_EXIT_VAL = undef;
 
@@ -129,7 +123,7 @@ sub compile {
         local @SIG{keys %SIG} = @{[]} = values %SIG;
         local $USE_REAL_EXIT = 0;
 
-        my $code = _eval $eval;
+        my $code = $self->_eval($eval);
         my $exception = $@;
 
         die "Could not compile $script: $exception" if $exception;
@@ -137,7 +131,8 @@ sub compile {
         sub {
             my @args = @_;
             # this is necessary for MSWin32
-            local $SIG{__WARN__} = sub { warn(@_) unless $_[0] =~ /^No such signal/ };
+            my $orig_warn = $SIG{__WARN__} || sub { warn(@_) };
+            local $SIG{__WARN__} = sub { $orig_warn->(@_) unless $_[0] =~ /^No such signal/ };
             $code->($self, $data, $path, $dir, \@args)
         };
     };
@@ -167,6 +162,36 @@ sub _build_package {
 
     $package = $self->{namespace_root} . "::$package";
     return $package;
+}
+
+# we use a tmpdir chmodded to 0700 so that the tempfiles are secure
+my $tmp_dir = File::Spec->catfile(File::Spec->tmpdir, "cgi_compile_$$");
+
+sub _eval {
+    my $code = \$_[1];
+
+    if (! -d $tmp_dir) {
+        mkdir $tmp_dir          or die "Could not mkdir $tmp_dir: $!";
+        chmod 0700, $tmp_dir    or die "Could not chmod 0700 $tmp_dir: $!";
+    }
+
+    my ($fh, $fname) = File::Temp::tempfile('cgi_compile_XXXXX',
+        UNLINK => 1, SUFFIX => '.pm', DIR => $tmp_dir);
+
+    print $fh $$code;
+    close $fh;
+
+    my $sub = do $fname;
+
+    unlink $fname or die "Could not delete $fname: $!";
+
+    return $sub;
+}
+
+END {
+    if (-d $tmp_dir) {
+        File::Path::remove_tree($tmp_dir);
+    }
 }
 
 1;
@@ -384,6 +409,92 @@ return C<-1>.
 
 If the subroutine C<CGI::initialize_globals> is defined at script runtime,
 it is called first thing by the compiled coderef.
+
+=head1 PROTECTED METHODS
+
+These methods define some of the internal functionality of
+L<CGI::Compile> and may be overloaded if you need to subclass this
+module.
+
+=head2 _read_source
+
+Reads the source of a CGI script.
+
+Parameters:
+
+=over 4
+
+=item * C<$file_path>
+
+Path to the file the contents of which is to be read.
+
+=back
+
+Returns:
+
+=over 4
+
+=item * C<$source>
+
+The contents of the file as a scalar string.
+
+=back
+
+=head2 _build_package
+
+Creates a package name into which the CGI coderef will be compiled into,
+prepended with C<$self->{namespace_root}>.
+
+Parameters:
+
+=over 4
+
+=item * C<$file_path>
+
+The path to the CGI script file, the package name is generated based on
+this path.
+
+=back
+
+Returns:
+
+=over 4
+
+=item * C<$package>
+
+The generated package name.
+
+=back
+
+=head2 _eval
+
+Takes the generated perl code, which is the contents of the CGI script
+and some other things we add to make everything work smoother, and
+returns the evaluated coderef.
+
+Currently this is done by writing out the code to a temp file and
+reading it in with L<perlfunc/do> so that there are no issues with
+lexical context or source filters.
+
+Parameters:
+
+=over 4
+
+=item * C<$code>
+
+The generated code that will make the coderef for the CGI.
+
+=back
+
+Returns:
+
+=over 4
+
+=item * C<$coderef>
+
+The coderef that is the resulting of evaluating the generated perl code.
+
+=back
 
 =head1 AUTHOR
 

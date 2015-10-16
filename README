@@ -199,6 +199,68 @@ SCRIPT ENVIRONMENT
     If the subroutine CGI::initialize_globals is defined at script runtime,
     it is called first thing by the compiled coderef.
 
+PROTECTED METHODS
+
+    These methods define some of the internal functionality of CGI::Compile
+    and may be overloaded if you need to subclass this module.
+
+ _read_source
+
+    Reads the source of a CGI script.
+
+    Parameters:
+
+      * $file_path
+
+      Path to the file the contents of which is to be read.
+
+    Returns:
+
+      * $source
+
+      The contents of the file as a scalar string.
+
+ _build_package
+
+    Creates a package name into which the CGI coderef will be compiled
+    into, prepended with $self-{namespace_root}>.
+
+    Parameters:
+
+      * $file_path
+
+      The path to the CGI script file, the package name is generated based
+      on this path.
+
+    Returns:
+
+      * $package
+
+      The generated package name.
+
+ _eval
+
+    Takes the generated perl code, which is the contents of the CGI script
+    and some other things we add to make everything work smoother, and
+    returns the evaluated coderef.
+
+    Currently this is done by writing out the code to a temp file and
+    reading it in with "do" in perlfunc so that there are no issues with
+    lexical context or source filters.
+
+    Parameters:
+
+      * $code
+
+      The generated code that will make the coderef for the CGI.
+
+    Returns:
+
+      * $coderef
+
+      The coderef that is the resulting of evaluating the generated perl
+      code.
+
 AUTHOR
 
     Tatsuhiko Miyagawa <miyagawa@bulknews.net>
