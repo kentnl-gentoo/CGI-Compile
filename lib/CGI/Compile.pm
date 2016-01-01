@@ -3,7 +3,7 @@ package CGI::Compile;
 use strict;
 use 5.008_001;
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 use Cwd;
 use File::Basename;
@@ -72,7 +72,7 @@ sub compile {
     my $warnings = $code =~ /^#!.*\s-w\b/ ? 1 : 0;
     $code =~ s/^__END__\r?\n.*//ms;
     $code =~ s/^__DATA__\r?\n(.*)//ms;
-    my $data = $1;
+    my $data = defined $1 ? $1 : '';
 
     # TODO handle nph and command line switches?
     my $eval = join '',
@@ -96,6 +96,8 @@ sub compile {
         $code,
         "\n};",
         q{
+        {
+            no warnings qw(uninitialized numeric pack);
             my $self     = shift;
             my $exit_val = unpack('C', pack('C', sprintf('%.0f', $rv)));
             if ($@) {
@@ -113,6 +115,7 @@ sub compile {
             }
 
             return $exit_val;
+        }
         },
         '};';
 
